@@ -1,4 +1,4 @@
-package capsules.test.system;
+package capsulesexample.system;
 
 import java.lang.annotation.Documented;
 

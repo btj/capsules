@@ -1,8 +1,8 @@
-package capsules.test.client;
+package capsulesexample.client;
 
-import capsules.test.system.SystemRoot;
-import capsules.test.system.sub1.Subsystem1ExportedClass;
-import capsules.test.system.sub2.Subsystem2ExportedClass;
+import capsulesexample.system.SystemRoot;
+import capsulesexample.system.sub1.Subsystem1ExportedClass;
+import capsulesexample.system.sub2.Subsystem2ExportedClass;
 
 public class GoodClientClass {
 	public static void goodClientMethod() {

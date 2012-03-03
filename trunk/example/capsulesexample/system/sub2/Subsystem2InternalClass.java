@@ -1,9 +1,9 @@
-package capsules.test.system.sub2;
+package capsulesexample.system.sub2;
 
-import capsules.test.system.InternalHelper;
-import capsules.test.system.SystemRoot;
-import capsules.test.system.sub1.Subsystem1ExportedClass;
-import capsules.test.system.sub1.Subsystem1InternalClass;
+import capsulesexample.system.InternalHelper;
+import capsulesexample.system.SystemRoot;
+import capsulesexample.system.sub1.Subsystem1ExportedClass;
+import capsulesexample.system.sub1.Subsystem1InternalClass;
 
 public class Subsystem2InternalClass {
 	public static int internalField;
