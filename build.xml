@@ -14,8 +14,6 @@
   
   <mkdir dir="bin"/>
   
-  <mkdir dir="testbin"/>
-  
   <target name="asm" unless="have_asmjar">
     <get src="http://download.forge.objectweb.org/asm/asm-4.0_RC2-bin.zip" dest="asm-4.0_RC2-bin.zip" usetimestamp="true" skipexisting="true"/>
     <unzip src="asm-4.0_RC2-bin.zip" dest="." overwrite="false"/>
@@ -33,28 +31,8 @@
         <attribute name="Main-Class" value="capsules.checker.Checker"/>
       </manifest>
       <fileset dir="bin"/>
-      <zipfileset excludes="META-INF/*" src="asm-4.0_RC2/lib/all/asm-all-4.0_RC2.jar"/>
+      <zipfileset excludes="META-INF/**" src="asm-4.0_RC2/lib/all/asm-all-4.0_RC2.jar"/>
     </jar>
-  </target>
-  
-  <target name="test" depends="jar">
-    <javac srcdir="test" destdir="testbin" classpath="capsules.jar" includeAntRuntime="false" debug="true"/>
-  	<java jar="capsules.jar" outputproperty="test_output" fork="true">
-  		<arg value="testbin"/>
-  	</java>
-  	<loadfile srcfile="test_out.txt" property="test_out"/>
-  	<condition property="test_success">
-  		<equals arg1="${test_output}" arg2="${test_out}"/>
-  	</condition>
-  	<fail unless="test_success"/>
-  </target>
-  
-  <target name="doclettest" depends="jar">
-    <javadoc sourcepath="test" destdir="doclettest_output" classpath="bin" packagenames="capsules.test.system.*">
-      <doclet name="capsules.doclet.Doclet" path="bin">
-        <param name="-exportKeyword" value="capsules.test.system.SystemAPI"/>
-      </doclet>
-    </javadoc>
   </target>
   
   <target name="javadoc" unless="have_javadoc">
@@ -68,19 +46,22 @@
     </javadoc>
   </target>
   
-  <target name="dist" depends="jar,test,doclettest,javadoc">
+  <target name="test">
+    <ant antfile="example.xml"/>
+  </target>
+  
+  <target name="dist" depends="jar,test,javadoc">
     <zip destfile="capsules.zip">
-      <fileset dir="." includes="capsules.jar,License.txt,docs/*"/>
+      <fileset dir="." includes="capsules.jar,License.txt,docs/**,example/**,example.xml,example_checker_output.txt"/>
     </zip>
   </target>
   
   <target name="clean">
     <delete dir="bin"/>
-    <delete dir="testbin"/>
-    <delete dir="doclettest_output"/>
     <delete dir="docs"/>
     <delete file="capsules.jar"/>
     <delete file="capsules.zip"/>
+    <ant antfile="example.xml" target="clean"/>
   </target>
   
 </project>

@@ -1,5 +1,5 @@
 @Capsule(exportKeyword=SystemAPI.class)
-package capsules.test.system;
+package capsulesexample.system;
 
 import capsules.Capsule;
 
