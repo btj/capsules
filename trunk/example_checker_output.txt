@@ -11,4 +11,5 @@
 (capsulesexample/client/BadClientClass.java:31): Field not exported by capsule capsulesexample/system
 (capsulesexample/client/BadClientClass.java:32): Field not exported by capsule capsulesexample/system
 (capsulesexample/client/BadClientClass.java:35): Field not exported by capsule capsulesexample/system
-13 errors found
+(capsulesexample/client/BadClientClass.java:36): Method not exported by capsule capsulesexample/system
+14 errors found
