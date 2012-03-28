@@ -5,6 +5,7 @@ import capsulesexample.system.SystemRoot;
 import capsulesexample.system.sub1.Subsystem1ExportedClass;
 import capsulesexample.system.sub1.Subsystem1InternalClass;
 import capsulesexample.system.sub2.Subsystem2ExportedClass;
+import capsulesexample.system.sub2.Subsystem2ExportedSubclass;
 import capsulesexample.system.sub2.Subsystem2InternalClass;
 
 public class BadClientClass {
@@ -29,5 +30,8 @@ public class BadClientClass {
 		System.out.println(Subsystem1InternalClass.internalField);
 		System.out.println(Subsystem2ExportedClass.internalField);
 		System.out.println(Subsystem2InternalClass.internalField);
+		
+		Subsystem2ExportedSubclass sub = Subsystem2ExportedSubclass.create();
+		System.out.println(sub.internalField);
 	}
 }

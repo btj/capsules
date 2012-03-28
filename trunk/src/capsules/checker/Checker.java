@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +28,21 @@ public class Checker {
 	
     static String classNameDesc(String className) { return "L"+className+";"; }
 
+    static enum MemberKind {
+    	Method {
+    		String getMemberKey(String name, String desc) {
+    			return name+"."+desc;
+    		}
+    	},
+    	Field {
+    		String getMemberKey(String name, String desc) {
+    			return name+"("+desc;
+    		}
+    	};
+    	
+    	abstract String getMemberKey(String name, String desc);
+    }
+    
     private Checker() {}
     
 	boolean verbose;
@@ -50,20 +66,13 @@ public class Checker {
 		}
 	}
 	
-	static String methodKey(String name, String desc) {
-		return name+"("+desc;
-	}
-	
-	static String fieldKey(String name, String desc) {
-		return name+"."+desc;
-	}
-	
 	class Capsule {
 		String packageName;
 		String keywordName;
 		HashMap<String, CapsuleClass> classes = new HashMap<String, CapsuleClass>();
 		
 		class CapsuleClass {
+			ArrayList<String> supertypes = new ArrayList<String>(); 
 			HashSet<String> members = new HashSet<String>();
 			boolean exported;
 		}
@@ -82,6 +91,16 @@ public class Checker {
 					if (stream != null) {
 						ClassReader reader = new ClassReader(stream);
 						ClassVisitor visitor = new ClassVisitor(Opcodes.ASM4) {
+							
+							@Override
+							public void visit(int version, int access, String name,
+									String signature, String superName, String[] interfaces) {
+								if (!superName.equals("java/lang/Object"))
+									cc.supertypes.add(superName);
+								if (interfaces != null)
+									cc.supertypes.addAll(Arrays.asList(interfaces));
+							}
+
 							@Override
 							public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 								if (desc.equals(keywordName))
@@ -95,7 +114,7 @@ public class Checker {
 									@Override
 									public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 										if (desc.equals(keywordName))
-											cc.members.add(fieldKey(fieldName, fieldDesc));
+											cc.members.add(MemberKind.Field.getMemberKey(fieldName, fieldDesc));
 										return null;
 									}
 								};
@@ -107,7 +126,7 @@ public class Checker {
 									@Override
 									public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 										if (desc.equals(keywordName))
-											cc.members.add(methodKey(methodName, methodDesc));
+											cc.members.add(MemberKind.Method.getMemberKey(methodName, methodDesc));
 										return null;
 									}
 								};
@@ -123,14 +142,27 @@ public class Checker {
 			}
 		}
 		
-		void checkMemberAccessFrom(String owner, String key, String kind, String fromPackage, String source, int line) {
+		boolean checkMemberAccessFrom(String owner, MemberKind kind, String name, String desc, boolean checkSupertypes, String fromPackage, String source, int line, boolean reportError) {
 			if (fromPackage != null && (fromPackage+"/").startsWith(packageName+"/"))
-				return; // Intra-capsule access
+				return true; // Intra-capsule access
 			CapsuleClass capsuleClass = getCapsuleClass(owner);
-			if (!capsuleClass.members.contains(key)) {
+			if (capsuleClass.members.contains(kind.getMemberKey(name, desc)))
+				return true;
+			
+			if (checkSupertypes) {
+				for (String supertype : capsuleClass.supertypes) {
+					if (Checker.this.checkMemberAccessFrom(supertype, kind, name, desc, checkSupertypes, fromPackage, source, line, false)) {
+						return true;
+					}
+				}
+			}
+			
+			if (reportError) {
 				String sourceFile = fromPackage+"/"+source;
 				reportError("("+sourceFile+":"+line+"): "+kind+" not exported by capsule "+packageName);
 			}
+			
+			return false;
 		}
 	}
 
@@ -234,6 +266,21 @@ public class Checker {
 		return capsules;
 	}
 	
+	boolean checkMemberAccessFrom(String owner, MemberKind kind, String name, String desc, boolean checkSupertypes, String fromPackage, String source, int line, boolean reportError) {
+		//System.err.println("Checking access of "+kind+" "+owner+"#"+name+":"+desc+" from "+fromPackage);
+		String ownerPackage = getParentName(owner);
+		if (nameEquals(ownerPackage, fromPackage)) {
+			return true;
+		} else {
+			List<Capsule> capsules = getPackageCapsules(ownerPackage);
+			for (Capsule capsule : capsules) {
+				if (!capsule.checkMemberAccessFrom(owner, kind, name, desc, checkSupertypes, fromPackage, source, line, reportError))
+					return false;
+			}
+			return true;
+		}
+	}
+	
 	void checkClass(InputStream classFile) throws IOException {
 		ClassReader reader = new ClassReader(classFile);
 		String className = reader.getClassName();
@@ -260,28 +307,12 @@ public class Checker {
 					
 					@Override
 					public void visitFieldInsn(int opcode, String owner, String name, String desc)  {
-						String ownerPackage = getParentName(owner);
-						if (nameEquals(ownerPackage, currentPackage)) {
-							// Intra-package accesses are always OK
-						} else {
-							List<Capsule> capsules = getPackageCapsules(ownerPackage);
-							for (Capsule capsule : capsules) {
-								capsule.checkMemberAccessFrom(owner, fieldKey(name, desc), "Field", currentPackage, source, line);
-							}
-						}
+						checkMemberAccessFrom(owner, MemberKind.Field, name, desc, false, currentPackage, source, line, true);
 					}
 					
 					@Override
 					public void visitMethodInsn(int opcode, String owner, String name, String desc)  {
-						String ownerPackage = getParentName(owner);
-						if (nameEquals(ownerPackage, currentPackage)) {
-							// Intra-package accesses are always OK
-						} else {
-							List<Capsule> capsules = getPackageCapsules(ownerPackage);
-							for (Capsule capsule : capsules) {
-								capsule.checkMemberAccessFrom(owner, methodKey(name, desc), "Method", currentPackage, source, line);
-							}
-						}
+						checkMemberAccessFrom(owner, MemberKind.Method, name, desc, opcode != Opcodes.INVOKESTATIC, currentPackage, source, line, true);
 					}
 				};
 			}
