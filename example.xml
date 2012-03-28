@@ -8,7 +8,7 @@
     <java jar="capsules.jar" outputproperty="example_check_output_actual" fork="true">
       <arg value="examplebin"/>
     </java>
-    
+    <echo message="${example_check_output_actual}"/>
     <!-- Check that the checker output is as expected. -->
     <loadfile srcfile="example_checker_output.txt" property="example_check_output_expected"/>
     <condition property="test_success">
