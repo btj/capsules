@@ -73,7 +73,7 @@ public class Checker {
 		
 		class CapsuleClass {
 			ArrayList<String> supertypes = new ArrayList<String>(); 
-			HashSet<String> members = new HashSet<String>();
+			HashMap<String, Boolean> membersExported = new HashMap<String, Boolean>();
 			boolean exported;
 		}
 		
@@ -110,11 +110,12 @@ public class Checker {
 							
 							@Override
 							public FieldVisitor visitField(int access, final String fieldName, final String fieldDesc, String signature, Object value) {
+								cc.membersExported.put(MemberKind.Field.getMemberKey(fieldName, fieldDesc), false);
 								return new FieldVisitor(Opcodes.ASM4) {
 									@Override
 									public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 										if (desc.equals(keywordName))
-											cc.members.add(MemberKind.Field.getMemberKey(fieldName, fieldDesc));
+											cc.membersExported.put(MemberKind.Field.getMemberKey(fieldName, fieldDesc), true);
 										return null;
 									}
 								};
@@ -122,11 +123,12 @@ public class Checker {
 							
 							@Override
 							public MethodVisitor visitMethod(int access, final String methodName, final String methodDesc, String signature, String[] exceptions)  {
+								cc.membersExported.put(MemberKind.Method.getMemberKey(methodName, methodDesc), false);
 								return new MethodVisitor(Opcodes.ASM4) {
 									@Override
 									public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 										if (desc.equals(keywordName))
-											cc.members.add(MemberKind.Method.getMemberKey(methodName, methodDesc));
+											cc.membersExported.put(MemberKind.Method.getMemberKey(methodName, methodDesc), true);
 										return null;
 									}
 								};
@@ -142,16 +144,16 @@ public class Checker {
 			}
 		}
 		
-		boolean checkMemberAccessFrom(String owner, MemberKind kind, String name, String desc, boolean checkSupertypes, String fromPackage, String source, int line, boolean reportError) {
+		boolean checkMemberAccessFrom(String owner, MemberKind kind, String name, String desc, String fromPackage, String source, int line, boolean reportError) {
 			if (fromPackage != null && (fromPackage+"/").startsWith(packageName+"/"))
 				return true; // Intra-capsule access
 			CapsuleClass capsuleClass = getCapsuleClass(owner);
-			if (capsuleClass.members.contains(kind.getMemberKey(name, desc)))
-				return true;
-			
-			if (checkSupertypes) {
+			if (capsuleClass.membersExported.containsKey(kind.getMemberKey(name, desc))) {
+				if (capsuleClass.membersExported.get(kind.getMemberKey(name, desc)))
+					return true;
+			} else {
 				for (String supertype : capsuleClass.supertypes) {
-					if (Checker.this.checkMemberAccessFrom(supertype, kind, name, desc, checkSupertypes, fromPackage, source, line, false)) {
+					if (Checker.this.checkMemberAccessFrom(supertype, kind, name, desc, fromPackage, source, line, false)) {
 						return true;
 					}
 				}
@@ -266,7 +268,7 @@ public class Checker {
 		return capsules;
 	}
 	
-	boolean checkMemberAccessFrom(String owner, MemberKind kind, String name, String desc, boolean checkSupertypes, String fromPackage, String source, int line, boolean reportError) {
+	boolean checkMemberAccessFrom(String owner, MemberKind kind, String name, String desc, String fromPackage, String source, int line, boolean reportError) {
 		//System.err.println("Checking access of "+kind+" "+owner+"#"+name+":"+desc+" from "+fromPackage);
 		String ownerPackage = getParentName(owner);
 		if (nameEquals(ownerPackage, fromPackage)) {
@@ -274,7 +276,7 @@ public class Checker {
 		} else {
 			List<Capsule> capsules = getPackageCapsules(ownerPackage);
 			for (Capsule capsule : capsules) {
-				if (!capsule.checkMemberAccessFrom(owner, kind, name, desc, checkSupertypes, fromPackage, source, line, reportError))
+				if (!capsule.checkMemberAccessFrom(owner, kind, name, desc, fromPackage, source, line, reportError))
 					return false;
 			}
 			return true;
@@ -307,12 +309,12 @@ public class Checker {
 					
 					@Override
 					public void visitFieldInsn(int opcode, String owner, String name, String desc)  {
-						checkMemberAccessFrom(owner, MemberKind.Field, name, desc, false, currentPackage, source, line, true);
+						checkMemberAccessFrom(owner, MemberKind.Field, name, desc, currentPackage, source, line, true);
 					}
 					
 					@Override
 					public void visitMethodInsn(int opcode, String owner, String name, String desc)  {
-						checkMemberAccessFrom(owner, MemberKind.Method, name, desc, opcode != Opcodes.INVOKESTATIC, currentPackage, source, line, true);
+						checkMemberAccessFrom(owner, MemberKind.Method, name, desc, currentPackage, source, line, true);
 					}
 				};
 			}

@@ -33,5 +33,6 @@ public class BadClientClass {
 		
 		Subsystem2ExportedSubclass sub = Subsystem2ExportedSubclass.create();
 		System.out.println(sub.internalField);
+		sub.internalMethod();
 	}
 }
