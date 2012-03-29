@@ -82,7 +82,7 @@ public class Checker {
 			this.keywordName = keywordName;
 		}
 		
-		CapsuleClass getCapsuleClass(String className) {
+		CapsuleClass getCapsuleClass(final String className) {
 			try {
 				CapsuleClass capsuleClass = classes.get(className);
 				if (capsuleClass == null) {
@@ -90,11 +90,13 @@ public class Checker {
 					InputStream stream = findClassFile(className+".class");
 					if (stream != null) {
 						ClassReader reader = new ClassReader(stream);
+						final int[] classAccess = new int[1];
 						ClassVisitor visitor = new ClassVisitor(Opcodes.ASM4) {
 							
 							@Override
 							public void visit(int version, int access, String name,
 									String signature, String superName, String[] interfaces) {
+								classAccess[0] = access;
 								if (!superName.equals("java/lang/Object"))
 									cc.supertypes.add(superName);
 								if (interfaces != null)
@@ -110,7 +112,9 @@ public class Checker {
 							
 							@Override
 							public FieldVisitor visitField(int access, final String fieldName, final String fieldDesc, String signature, Object value) {
-								cc.membersExported.put(MemberKind.Field.getMemberKey(fieldName, fieldDesc), false);
+								boolean isEnumConstant = (access & Opcodes.ACC_ENUM) != 0;
+								boolean isExported = isEnumConstant;
+								cc.membersExported.put(MemberKind.Field.getMemberKey(fieldName, fieldDesc), isExported);
 								return new FieldVisitor(Opcodes.ASM4) {
 									@Override
 									public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
@@ -135,6 +139,10 @@ public class Checker {
 							}
 						};
 						reader.accept(visitor, ClassReader.SKIP_CODE|ClassReader.SKIP_DEBUG);
+						if ((classAccess[0] & Opcodes.ACC_ENUM) != 0) {
+							cc.membersExported.put(MemberKind.Method.getMemberKey("values", "()[L"+className+";"), true);
+							cc.membersExported.put(MemberKind.Method.getMemberKey("valueOf", "(Ljava/lang/String;)L"+className+";"), true);
+						}
 					}
 					classes.put(className, capsuleClass);
 				}

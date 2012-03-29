@@ -1,12 +1,8 @@
 package capsulesexample.client;
 
-import capsulesexample.system.InternalHelper;
-import capsulesexample.system.SystemRoot;
-import capsulesexample.system.sub1.Subsystem1ExportedClass;
-import capsulesexample.system.sub1.Subsystem1InternalClass;
-import capsulesexample.system.sub2.Subsystem2ExportedClass;
-import capsulesexample.system.sub2.Subsystem2ExportedSubclass;
-import capsulesexample.system.sub2.Subsystem2InternalClass;
+import capsulesexample.system.*;
+import capsulesexample.system.sub1.*;
+import capsulesexample.system.sub2.*;
 
 public class BadClientClass {
 	public static void goodClientMethod() {
@@ -34,5 +30,7 @@ public class BadClientClass {
 		Subsystem2ExportedSubclass sub = Subsystem2ExportedSubclass.create();
 		System.out.println(sub.internalField);
 		sub.internalMethod();
+		
+		ExportedEnum.X.internalMethod();
 	}
 }
