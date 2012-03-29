@@ -12,6 +12,7 @@ import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.LanguageVersion;
 import com.sun.javadoc.MemberDoc;
+import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.RootDoc;
 import com.sun.tools.doclets.standard.Standard;
 import com.sun.tools.javadoc.Main;
@@ -99,9 +100,24 @@ public class Doclet {
     private boolean isExported(Object target) {
     	if (target instanceof ClassDoc)
     		return containsExportKeyword(((ClassDoc)target).annotations());
-    	else if (target instanceof MemberDoc)
-    		return containsExportKeyword(((MemberDoc)target).annotations());
-    	else
+    	else if (target instanceof MemberDoc) {
+    		MemberDoc member = (MemberDoc)target;
+    		if (containsExportKeyword(member.annotations()))
+    			return true;
+    		if (member.containingClass().isEnum() && containsExportKeyword(member.containingClass().annotations())) {
+    			if (member.isMethod()) {
+	    			MethodDoc method = (MethodDoc)member;
+	    			if (method.name().equals("values") && method.parameters().length == 0)
+	    				return true;
+	    			if (method.name().equals("valueOf") && method.parameters().length == 1 &&
+	    					method.parameters()[0].type().qualifiedTypeName().equals("java.lang.String"))
+	    				return true;
+    			}
+        		if (member.isEnumConstant())
+        			return true;
+    		}
+			return false;
+    	} else
     		return true;
     }
     

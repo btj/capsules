@@ -1,5 +1,6 @@
 package capsulesexample.client;
 
+import capsulesexample.system.ExportedEnum;
 import capsulesexample.system.SystemRoot;
 import capsulesexample.system.sub1.Subsystem1ExportedClass;
 import capsulesexample.system.sub2.Subsystem2ExportedClass;
@@ -18,5 +19,9 @@ public class GoodClientClass {
 		sub.exportedInterfaceMethod();
 		sub.exportedSuperclassMethod();
 		System.out.println(sub.exportedField);
+		
+		System.out.println(ExportedEnum.X);
+		System.out.println(ExportedEnum.valueOf("X"));
+		System.out.println(ExportedEnum.values());
 	}
 }
