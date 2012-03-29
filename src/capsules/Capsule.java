@@ -12,8 +12,19 @@ import java.lang.annotation.Documented;
  * <pre>
  * java -jar capsules.jar C:\myproject\bin
  * </pre>
+ * 
+ * Specify a list of package names as the value of the <code>friends</code> attribute
+ * to give those packages, and their subpackages, unrestricted access to this capsule.
+ * For example,
+ * <pre>
+ * {@literal @}capsules.Capsule(exportKeyword=SystemAPI.class, friends={"org.helper1", "org.helper2"})
+ * package org.system;
+ * </pre>
+ * allows code in packages <code>org.helper1</code> and <code>org.helper2</code> to access non-exported
+ * elements below <code>org.system</code>.
  */
 @Documented
 public @interface Capsule {
 	Class<?> exportKeyword();
+	String[] friends() default {};
 }

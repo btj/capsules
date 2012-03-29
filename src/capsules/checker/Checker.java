@@ -69,6 +69,7 @@ public class Checker {
 	class Capsule {
 		String packageName;
 		String keywordName;
+		String[] friends;
 		HashMap<String, CapsuleClass> classes = new HashMap<String, CapsuleClass>();
 		
 		class CapsuleClass {
@@ -77,9 +78,14 @@ public class Checker {
 			boolean exported;
 		}
 		
-		Capsule(String packageName, String keywordName) {
+		Capsule(String packageName, String keywordName, String[] friends) {
 			this.packageName = packageName;
 			this.keywordName = keywordName;
+			friends = friends.clone();
+			for (int i = 0; i < friends.length; i++) {
+				friends[i] = friends[i].replace('.', '/')+"/";
+			}
+			this.friends = friends;
 		}
 		
 		CapsuleClass getCapsuleClass(final String className) {
@@ -155,6 +161,10 @@ public class Checker {
 		boolean checkMemberAccessFrom(String owner, MemberKind kind, String name, String desc, String fromPackage, String source, int line, boolean reportError) {
 			if (fromPackage != null && (fromPackage+"/").startsWith(packageName+"/"))
 				return true; // Intra-capsule access
+			for (String friend : friends) {
+				if (fromPackage != null && (fromPackage+"/").startsWith(friend))
+					return true; // Access by a friend
+			}
 			CapsuleClass capsuleClass = getCapsuleClass(owner);
 			if (capsuleClass.membersExported.containsKey(kind.getMemberKey(name, desc))) {
 				if (capsuleClass.membersExported.get(kind.getMemberKey(name, desc)))
@@ -254,12 +264,42 @@ public class Checker {
 						public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 							if (desc.equals(capsuleClassDesc)) {
 								return new AnnotationVisitor(Opcodes.ASM4) {
+									String exportKeyword;
+									String[] friends = {};
+									
 									@Override
 									public void visit(String name, Object value) {
-										Type exportKeyword = (Type)value;
-										cs.add(new Capsule(packageName, exportKeyword.toString()));
+										if (name.equals("exportKeyword"))
+											exportKeyword = ((Type)value).toString();
+										else
+											throw new AssertionError();
+									}
+									
+									@Override
+									public AnnotationVisitor visitArray(String name) {
+										if (name.equals("friends")) {
+											return new AnnotationVisitor(Opcodes.ASM4) {
+												ArrayList<String> elems = new ArrayList<String>();
+												
+												@Override
+												public void visit(String name, Object value) {
+													elems.add((String)value);
+												}
+												
+												@Override
+												public void visitEnd() {
+													friends = elems.toArray(friends);
+												}
+											};
+										} else
+											throw new AssertionError();
+									}
+									
+									@Override
+									public void visitEnd() {
+										cs.add(new Capsule(packageName, exportKeyword, friends));
 										if (verbose)
-											System.out.println("Detected capsule "+packageName+" with export keyword "+exportKeyword);
+											System.out.println("Detected capsule "+packageName+" with export keyword "+exportKeyword+" and friends "+Arrays.toString(friends));
 									}
 								};
 							}

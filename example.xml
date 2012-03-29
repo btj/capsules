@@ -6,6 +6,7 @@
   <target name="check">
     <javac srcdir="example" destdir="examplebin" classpath="capsules.jar" includeAntRuntime="false" debug="true"/>
     <java jar="capsules.jar" outputproperty="example_check_output_actual" fork="true">
+      <!-- <arg value="-verbose"/> -->
       <arg value="examplebin"/>
     </java>
     <echo message="${example_check_output_actual}"/>
