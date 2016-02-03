@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>capsules by btj</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">capsules</h1>
+      <h2 class="project-tagline">A static encapsulation checker and doclet for multi-package Java modules</h2>
+      <a href="https://github.com/btj/capsules" class="btn">View on GitHub</a>
+      <a href="https://github.com/btj/capsules/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/btj/capsules/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <p>Modular software development implies a <strong>distinction between interface and implementation</strong>. Java supports treating classes and packages as modules through its access modifiers. However, Java lacks such support for multi-package modules.</p>
+
+<p>This project defines a <strong>convention</strong> for identifying multi-package modules in the form of <em>capsules</em>. A capsule is defined by a <em>root package</em> and an <em>export keyword</em>. An export keyword is an annotation type. A capsule consists of its root package and all descendant packages in the package tree. The <em>exported elements</em> of a capsule are the types and members in the capsule that are annotated with the capsule's export keyword. A root package is associated with an export keyword using the @capsules.Capsule annotation.</p>
+
+<p>The project offers <strong>tool support</strong> for capsules in the form of a static checker and a Javadoc doclet.</p>
+
+<p>The <strong>static checker</strong>, given a set of .class files, checks that they respect capsule encapsulation, i.e. that all code not in a capsule accesses only the capsule's exported types and members.</p>
+
+<p>The <strong>doclet</strong> generates Javadoc documentation for a given capsule, including only its exported types and members.</p>
+
+<h2>
+<a id="example" class="anchor" href="#example" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Example</h2>
+
+<p>Consider a module consisting of the packages <code>foo</code> and <code>foo.bar</code>, and some client code in <code>fooclient</code>:</p>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// foo/Foo.java</span>
+<span class="pl-k">package</span> <span class="pl-smi">foo</span>;
+
+@<span class="pl-smi">FooAPI</span>
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">Foo</span> {
+
+    <span class="pl-k">@FooAPI</span>
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-k">void</span> <span class="pl-en">apiMethod</span>() {}
+
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-k">void</span> <span class="pl-en">internalMethod</span>() {
+        <span class="pl-smi">foo.bar<span class="pl-k">.</span>Bar</span><span class="pl-k">.</span>internalMethod(); <span class="pl-c">// OK</span>
+    }
+
+}</pre></div>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// foo/FooAPI.java</span>
+<span class="pl-k">package</span> <span class="pl-smi">foo</span>;
+
+@<span class="pl-smi">java.lang.annotation<span class="pl-k">.</span>Documented</span>
+@<span class="pl-smi">FooAPI</span>
+<span class="pl-k">public</span> <span class="pl-k">@interface</span> <span class="pl-en">FooAPI</span> {}</pre></div>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// foo/package-info.java</span>
+@<span class="pl-smi">capsules<span class="pl-k">.</span>Capsule</span>(exportKeyword<span class="pl-k">=</span><span class="pl-smi">FooAPI</span><span class="pl-k">.</span>class)
+<span class="pl-k">package</span> <span class="pl-smi">foo</span>;</pre></div>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// foo/bar/Bar.java</span>
+<span class="pl-k">package</span> <span class="pl-smi">foo.bar</span>;
+
+@<span class="pl-smi">foo<span class="pl-k">.</span>FooAPI</span>
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">Bar</span> {
+
+    <span class="pl-k">@foo</span><span class="pl-k">.</span><span class="pl-smi">FooAPI</span>
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-k">void</span> <span class="pl-en">apiMethod</span>() {}
+
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-k">void</span> <span class="pl-en">internalMethod</span>() {
+        <span class="pl-smi">foo<span class="pl-k">.</span>Foo</span><span class="pl-k">.</span>internalMethod(); <span class="pl-c">// OK</span>
+    }
+
+}</pre></div>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// fooclient/FooClient.java</span>
+<span class="pl-k">package</span> <span class="pl-smi">fooclient</span>;
+
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">FooClient</span> {
+
+    <span class="pl-k">public</span> <span class="pl-k">static</span> <span class="pl-k">void</span> <span class="pl-en">main</span>(<span class="pl-k">String</span>[] <span class="pl-v">args</span>) {
+        <span class="pl-smi">foo<span class="pl-k">.</span>Foo</span><span class="pl-k">.</span>apiMethod(); <span class="pl-c">// OK</span>
+        <span class="pl-smi">foo<span class="pl-k">.</span>Foo</span><span class="pl-k">.</span>internalMethod(); <span class="pl-c">// Not OK</span>
+        <span class="pl-smi">foo.bar<span class="pl-k">.</span>Bar</span><span class="pl-k">.</span>apiMethod(); <span class="pl-c">// OK</span>
+        <span class="pl-smi">foo.bar<span class="pl-k">.</span>Bar</span><span class="pl-k">.</span>internalMethod(); <span class="pl-c">// Not OK</span>
+    }
+
+}</pre></div>
+
+<p>Method <code>foo.Foo.internalMethod</code> is used within the module by <code>foo.bar.Bar.internalMethod</code> but is not supposed to be accessed by client code. Similarly, method <code>foo.bar.Bar.internalMethod</code> is used within the module by <code>foo.Foo.internalMethod</code> but is not supposed to be accessed by client code.</p>
+
+<p>We can indicate that package <code>foo</code> and its subpackages form a module by applying the <code>@Capsule</code> annotation to package <code>foo</code>. Furthermore, to indicate which types and members are supposed to be used by client code and which are not, we define an annotation type <code>FooAPI</code> and we annotate all types and members that we want to export with it. We indicate that <code>FooAPI</code> serves as the export keyword for the capsule using the <code>@Capsule</code> annotation's <code>exportKeyword</code> element.</p>
+
+<p>We can now use the static checker to check that client code uses only exported elements. Since the checker operates on .class files, we first need to compile the codebase:</p>
+
+<pre><code>javac -g -classpath capsules.jar -d bin -sourcepath src src/fooclient/*.java src/foo/*.java src/foo/bar/*.java
+</code></pre>
+
+<p>Note: be sure to include the <code>-g</code> flag so that the checker can report the source locations of the errors it finds.</p>
+
+<p>Now we can run the checker, passing the directory with the .class file tree as an argument:</p>
+
+<pre><code>java -jar capsules.jar bin
+</code></pre>
+
+<p>It will produce the following output:</p>
+
+<pre><code>(fooclient/FooClient.java:7): Method not exported by capsule foo
+(fooclient/FooClient.java:9): Method not exported by capsule foo
+2 errors found
+</code></pre>
+
+<p>We can generate Javadoc documentation for the exported elements of our capsule using the following command line:</p>
+
+<pre><code>javadoc -docletpath capsules.jar -doclet capsules.doclet.Doclet -d foodocs
+    -classpath capsules.jar -sourcepath src -subpackages foo -exportKeyword foo.FooAPI
+</code></pre>
+
+<h2>
+<a id="friends-and-multi-root-capsules" class="anchor" href="#friends-and-multi-root-capsules" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Friends and multi-root capsules</h2>
+
+<p>A capsule may optionally specify a list of friend packages. For example:</p>
+
+<div class="highlight highlight-source-java"><pre>@<span class="pl-smi">capsules<span class="pl-k">.</span>Capsule</span>(exportKeyword<span class="pl-k">=</span><span class="pl-smi">SystemAPI</span><span class="pl-k">.</span>class, friends<span class="pl-k">=</span>{<span class="pl-s"><span class="pl-pds">"</span>org.friend1<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>org.friend2<span class="pl-pds">"</span></span>})
+<span class="pl-k">package</span> <span class="pl-smi">org.system</span>;</pre></div>
+
+<p>The effect is that code in the friend packages and their subpackages gets unrestricted access to the capsule.</p>
+
+<p>This feature can be used to more easily use the capsules toolkit on an existing codebase where the code for the capsule is not below a single root package. Proceed as follows:</p>
+
+<ol>
+<li>Declare each root package as a capsule separately</li>
+<li>Use the same export keyword for all capsules</li>
+<li>Make each capsule a friend of the other capsules</li>
+</ol>
+
+<p>For example:</p>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// org/root1/package-info.java</span>
+@<span class="pl-smi">capsules<span class="pl-k">.</span>Capsule</span>(exportKeyword<span class="pl-k">=</span><span class="pl-smi">org.root1<span class="pl-k">.</span>SystemAPI</span><span class="pl-k">.</span>class, friends<span class="pl-k">=</span>{<span class="pl-s"><span class="pl-pds">"</span>org.root2<span class="pl-pds">"</span></span>})
+<span class="pl-k">package</span> <span class="pl-smi">org.root1</span>;</pre></div>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// org/root2/package-info.java</span>
+@<span class="pl-smi">capsules<span class="pl-k">.</span>Capsule</span>(exportKeyword<span class="pl-k">=</span><span class="pl-smi">org.root1<span class="pl-k">.</span>SystemAPI</span><span class="pl-k">.</span>class, friends<span class="pl-k">=</span>{<span class="pl-s"><span class="pl-pds">"</span>org.root1<span class="pl-pds">"</span></span>})
+<span class="pl-k">package</span> <span class="pl-smi">org.root2</span>;</pre></div>
+
+<p>This way, org.root1 and org.root2 effectively constitute a single capsule.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/btj/capsules">capsules</a> is maintained by <a href="https://github.com/btj">btj</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
