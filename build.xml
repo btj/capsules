@@ -1,8 +1,12 @@
 <project default="dist">
   
   <property name="tools_jar" value="${java.home}/../lib/tools.jar"/>
+
+  <property name="asm_version" value="5.1"/>
+
+  <property name="asm_jar" value="asm-${asm_version}/lib/all/asm-all-${asm_version}.jar"/>
   
-  <available file="asm-4.0_RC2/lib/all/asm-all-4.0_RC2.jar" property="have_asmjar"/>
+  <available file="${asm_jar}" property="have_asmjar"/>
   
   <uptodate property="have_jar" targetfile="capsules.jar">
     <srcfiles dir="src"/>
@@ -15,14 +19,14 @@
   <mkdir dir="bin"/>
   
   <target name="asm" unless="have_asmjar">
-    <get src="http://download.forge.objectweb.org/asm/asm-4.0_RC2-bin.zip" dest="asm-4.0_RC2-bin.zip" usetimestamp="true" skipexisting="true"/>
-    <unzip src="asm-4.0_RC2-bin.zip" dest="." overwrite="false"/>
+    <get src="http://download.forge.objectweb.org/asm/asm-${asm_version}-bin.zip" dest="asm-${asm_version}-bin.zip" usetimestamp="true" skipexisting="true"/>
+    <unzip src="asm-${asm_version}-bin.zip" dest="." overwrite="false"/>
   </target>
   
   <target name="jar" depends="asm" unless="have_jar">
     <javac srcdir="src" destdir="bin" includeAntRuntime="false">
     	<classpath>
-    		<pathelement location="asm-4.0_RC2/lib/all/asm-all-4.0_RC2.jar"/>
+    		<pathelement location="${asm_jar}"/>
         <pathelement location="${tools_jar}"/>
     	</classpath>
     </javac>
@@ -31,7 +35,7 @@
         <attribute name="Main-Class" value="capsules.checker.Checker"/>
       </manifest>
       <fileset dir="bin"/>
-      <zipfileset excludes="META-INF/**" src="asm-4.0_RC2/lib/all/asm-all-4.0_RC2.jar"/>
+      <zipfileset excludes="META-INF/**" src="${asm_jar}"/>
     </jar>
   </target>
   
@@ -40,7 +44,7 @@
     <javadoc sourcepath="src" destdir="docs" windowtitle="Capsules API" packagenames="capsules">
       <link href="http://download.oracle.com/javase/7/docs/api/"/>
     	<classpath>
-    		<pathelement location="asm-4.0_RC2/lib/all/asm-all-4.0_RC2.jar"/>
+    		<pathelement location="${asm_jar}"/>
         <pathelement location="${tools_jar}"/>
     	</classpath>
     </javadoc>
