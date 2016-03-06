@@ -11,7 +11,11 @@
     </java>
     <echo message="${example_check_output_actual}"/>
     <!-- Check that the checker output is as expected. -->
-    <loadfile srcfile="example_checker_output.txt" property="example_check_output_expected"/>
+    <loadfile srcfile="example_checker_output.txt" property="example_check_output_expected">
+      <filterchain>
+        <fixcrlf fixlast="no"/>
+      </filterchain>
+    </loadfile>
     <condition property="test_success">
       <equals arg1="${example_check_output_expected}" arg2="${example_check_output_actual}"/>
     </condition>
