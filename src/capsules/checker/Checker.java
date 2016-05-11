@@ -97,7 +97,7 @@ public class Checker {
 					if (stream != null) {
 						ClassReader reader = new ClassReader(stream);
 						final int[] classAccess = new int[1];
-						ClassVisitor visitor = new ClassVisitor(Opcodes.ASM4) {
+						ClassVisitor visitor = new ClassVisitor(Opcodes.ASM5) {
 							
 							@Override
 							public void visit(int version, int access, String name,
@@ -121,7 +121,7 @@ public class Checker {
 								boolean isEnumConstant = (access & Opcodes.ACC_ENUM) != 0;
 								boolean isExported = isEnumConstant;
 								cc.membersExported.put(MemberKind.Field.getMemberKey(fieldName, fieldDesc), isExported);
-								return new FieldVisitor(Opcodes.ASM4) {
+								return new FieldVisitor(Opcodes.ASM5) {
 									@Override
 									public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 										if (desc.equals(keywordName))
@@ -134,7 +134,7 @@ public class Checker {
 							@Override
 							public MethodVisitor visitMethod(int access, final String methodName, final String methodDesc, String signature, String[] exceptions)  {
 								cc.membersExported.put(MemberKind.Method.getMemberKey(methodName, methodDesc), false);
-								return new MethodVisitor(Opcodes.ASM4) {
+								return new MethodVisitor(Opcodes.ASM5) {
 									@Override
 									public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 										if (desc.equals(keywordName))
@@ -259,11 +259,11 @@ public class Checker {
 				InputStream packageInfoFile = findClassFile(packageName + "/package-info.class");
 				if (packageInfoFile != null) {
 					ClassReader reader = new ClassReader(packageInfoFile);
-				 	ClassVisitor visitor = new ClassVisitor(Opcodes.ASM4) {
+				 	ClassVisitor visitor = new ClassVisitor(Opcodes.ASM5) {
 						@Override
 						public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 							if (desc.equals(capsuleClassDesc)) {
-								return new AnnotationVisitor(Opcodes.ASM4) {
+								return new AnnotationVisitor(Opcodes.ASM5) {
 									String exportKeyword;
 									String[] friends = {};
 									
@@ -278,7 +278,7 @@ public class Checker {
 									@Override
 									public AnnotationVisitor visitArray(String name) {
 										if (name.equals("friends")) {
-											return new AnnotationVisitor(Opcodes.ASM4) {
+											return new AnnotationVisitor(Opcodes.ASM5) {
 												ArrayList<String> elems = new ArrayList<String>();
 												
 												@Override
@@ -335,7 +335,7 @@ public class Checker {
 		ClassReader reader = new ClassReader(classFile);
 		String className = reader.getClassName();
 		final String currentPackage = getParentName(className);
-		ClassVisitor checker = new ClassVisitor(Opcodes.ASM4) {
+		ClassVisitor checker = new ClassVisitor(Opcodes.ASM5) {
 			
 			String source;
 			
@@ -346,7 +346,7 @@ public class Checker {
 			
 			@Override
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) { 
-				return new MethodVisitor(Opcodes.ASM4) {
+				return new MethodVisitor(Opcodes.ASM5) {
 					
 					int line;
 					
@@ -361,7 +361,7 @@ public class Checker {
 					}
 					
 					@Override
-					public void visitMethodInsn(int opcode, String owner, String name, String desc)  {
+					public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf)  {
 						checkMemberAccessFrom(owner, MemberKind.Method, name, desc, currentPackage, source, line, true);
 					}
 				};
